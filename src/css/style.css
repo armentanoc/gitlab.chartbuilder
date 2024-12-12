@@ -117,6 +117,19 @@ input[type="file"]::file-selector-button {
     cursor: pointer;
   }  
 
+textarea {
+    text-align: center; 
+    padding: 0.5rem; 
+    line-height: 1rem; 
+    height: auto;
+    min-height: 10rem; 
+}
+
+textarea::placeholder {
+    text-align: center; 
+    line-height: 1rem; 
+}
+
 @media (max-width: 768px) {
     #download-btn, #file-input {
         width: 50vw;

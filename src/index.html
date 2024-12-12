@@ -11,7 +11,9 @@
 <body>
     <div class="container">
         <h1>GitLab Contributions Chart</h1>
-        <p>ps.: to get your contributions' JSON go to: <br>https://gitlab.<code>{{your_company_url}}</code>/users/<code>{{your_user_name}}</code>/calendar.json</p>
+        <p>PS.: to get your GitLab contributions' JSON go to: 
+            <br>https://gitlab.<code>{{your_company_url}}</code>/users/<code>{{your_user_name}}</code>/calendar.json</p>
+        <textarea id="json-input" rows="10" cols="50" placeholder="Paste your JSON string here or upload a JSON file below"></textarea><br>
         <input type="file" id="file-input" accept=".json">
         <div class="svg-container" id="calendar-svg"></div>
         <div id="error-message"></div>

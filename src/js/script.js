@@ -2,14 +2,13 @@ const generateSVGFromJSON = (data) => {
   const rectWidth = 10;
   const rectHeight = 10;
   const padding = 2;
-  const cols = 53; // 53 weeks in a year
-  const rows = 7; // 7 days in a week
+  const cols = 53;
+  const rows = 7;
   const xOffset = 10;
   const yOffset = 20;
   const dayWidth = rectWidth + padding;
   const dayHeight = rectHeight + padding;
   const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
   const filterYear = 2024;
 
   const dateKeys = Object.keys(data)
@@ -17,8 +16,8 @@ const generateSVGFromJSON = (data) => {
     .filter(date => date.getFullYear() === filterYear)
     .sort((a, b) => a - b);
 
-  const startDate = new Date(dateKeys[0].getFullYear(), 0, 2); // start on January 1st
-  const endDate = new Date(dateKeys[0].getFullYear(), 11, 30); // end on December 31st
+  const startDate = new Date(dateKeys[0].getFullYear(), 0, 2);
+  const endDate = new Date(dateKeys[0].getFullYear(), 11, 30);
 
   const result = {};
   for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
@@ -27,10 +26,10 @@ const generateSVGFromJSON = (data) => {
   }
 
   const getColor = (level) => {
-    if (level === 0) return "#e1e4e8"; // no contributions (light gray)
-    if (level < 5) return "#f4c20d"; // low contributions (light orange)
-    if (level < 10) return "#f39c12"; // medium contributions (orange)
-    return "#e67e22"; // high contributions (dark orange)
+    if (level === 0) return "#e1e4e8";
+    if (level < 5) return "#f4c20d";
+    if (level < 10) return "#f39c12";
+    return "#e67e22";
   };
 
   let rects = '';
@@ -41,7 +40,7 @@ const generateSVGFromJSON = (data) => {
 
   dates.forEach((date, index) => {
     const dateObj = new Date(date);
-    const dayOfWeek = (dateObj.getDay() + 1) % 7;  // Sunday (0) becomes the first day, Saturday (6) is last
+    const dayOfWeek = (dateObj.getDay() + 1) % 7;
     const weekOfYear = Math.floor(index / rows);
 
     const x = xOffset + weekOfYear * dayWidth;
@@ -59,8 +58,7 @@ const generateSVGFromJSON = (data) => {
     rects += ` 
       <rect width="${rectWidth}" height="${rectHeight}" x="${x}" y="${y}" 
             class="ContributionCalendar-day" data-date="${date}" 
-            data-level="${level}" rx="2" ry="2" fill="${color}">
-      </rect>`;
+            data-level="${level}" rx="2" ry="2" fill="${color}"></rect>`;
   });
 
   monthMarkers.sort((a, b) => a.x - b.x);
@@ -93,51 +91,80 @@ const generateSVGFromJSON = (data) => {
     </svg>`;
 };
 
-function handleFileSelect(event) {
-  const file = event.target.files[0];
-  if (file && file.type === 'application/json') {
-    const reader = new FileReader();
-    reader.onload = function (e) {
-      try {
-        showError('');
-        document.getElementById('calendar-svg').innerHTML = ''
-        const data = JSON.parse(e.target.result);
-        console.log('Uploaded JSON data:', data);
+function handleInput(event) {
+  let inputData = null;
 
-        const svgContent = generateSVGFromJSON(data);
-        console.log('Generated SVG content:', svgContent);
-
-        const calendarSvgElement = document.getElementById('calendar-svg');
-        if (calendarSvgElement) {
-          document.getElementById('error-message').style.display = 'none';
-          calendarSvgElement.style.display = 'block';
-          calendarSvgElement.innerHTML = svgContent;
-          document.getElementById('error-message')
-        } else {
-          showError('SVG container element not found.');
+  if (event.target.files && event.target.files[0]) {
+    const file = event.target.files[0];
+    if (file.type === 'application/json') {
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        try {
+          inputData = JSON.parse(e.target.result);
+          processInputData(inputData);
+        } catch (error) {
+          showError('Error parsing JSON from file: ' + error.message);
         }
-
-        const downloadBtn = document.getElementById('download-btn');
-        if (downloadBtn) {
-          downloadBtn.removeEventListener('click', () => downloadPNG(file, svgContent));
-          downloadBtn.addEventListener('click', () => downloadPNG(file, svgContent));
-          downloadBtn.style.display = 'inline';
-        } else {
-          showError('Download button element not found.');
-        }
-      } catch (error) {
-        showError('Error parsing JSON: ' + error.message);
-      }
-    };
-    reader.readAsText(file);
-  } else {
-    showError('Please upload a valid JSON file.');
+      };
+      reader.readAsText(file);
+    } else {
+      showError('Please upload a valid JSON file.');
+    }
+  } else if (event.target.value) {
+    try {
+      inputData = JSON.parse(event.target.value);
+      processInputData(inputData);
+    } catch (error) {
+      showError('Error parsing JSON string: ' + error.message);
+    }
   }
 }
 
-function downloadPNG(file, svgContent) {
-  const filename = file.name.replace(/\.[^/.]+$/, "") || 'calendar';
+function processInputData(data) {
+  try {
+    showError('');
+    document.getElementById('calendar-svg').innerHTML = '';
+    const svgContent = generateSVGFromJSON(data);
 
+    const calendarSvgElement = document.getElementById('calendar-svg');
+    if (calendarSvgElement) {
+      document.getElementById('error-message').style.display = 'none';
+      calendarSvgElement.style.display = 'block';
+      calendarSvgElement.innerHTML = svgContent;
+    } else {
+      showError('SVG container element not found.');
+    }
+
+    const downloadBtn = document.getElementById('download-btn');
+    if (downloadBtn) {
+      downloadBtn.removeEventListener('click', handleDownload);
+      downloadBtn.addEventListener('click', () => handleDownload(svgContent));
+      downloadBtn.style.display = 'inline';
+    } else {
+      showError('Download button element not found.');
+    }
+  } catch (error) {
+    showError('Error processing JSON data: ' + error.message);
+  }
+}
+
+function handleDownload(svgContent) {
+  if (!svgContent) {
+    showError('SVG content is not available for download.');
+    return;
+  }
+
+  downloadPNG(svgContent);
+}
+
+function downloadPNG(svgContent) {
+  if (!svgContent) {
+    console.error('SVG content is not available.');
+    showError('SVG content not found.');
+    return;
+  }
+
+  const filename = 'calendar';
   const svgBlob = new Blob([svgContent], { type: 'image/svg+xml' });
   const svgUrl = URL.createObjectURL(svgBlob);
 
@@ -183,15 +210,21 @@ function downloadPNG(file, svgContent) {
 function showError(message) {
   const errorMessageDiv = document.getElementById('error-message');
   if (errorMessageDiv) {
-      errorMessageDiv.textContent = ''; 
-      if (message) {
-        document.getElementById('calendar-svg').style.display = 'none';
-        errorMessageDiv.style.display = 'block';
-        errorMessageDiv.textContent = message; 
-      }
+    errorMessageDiv.textContent = '';
+    if (message) {
+      document.getElementById('calendar-svg').style.display = 'none';
+      errorMessageDiv.style.display = 'block';
+      errorMessageDiv.textContent = message;
+    }
   } else {
-      console.error(message);
+    console.error(message);
   }
 }
 
-document.getElementById('file-input').addEventListener('change', handleFileSelect);
+document.getElementById('file-input').addEventListener('change', handleInput);
+document.getElementById('json-input').addEventListener('input', handleInput);
+
+document.getElementById('download-btn').addEventListener('click', function() {
+  const svgContent = document.getElementById('calendar-svg').innerHTML;
+  downloadPNG(svgContent);
+});
