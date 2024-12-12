@@ -41,7 +41,7 @@ const generateSVGFromJSON = (data) => {
 
   dates.forEach((date, index) => {
     const dateObj = new Date(date);
-    const dayOfWeek = (dateObj.getDay() + 7) % 7;
+    const dayOfWeek = (dateObj.getDay() + 1) % 7;  // Sunday (0) becomes the first day, Saturday (6) is last
     const weekOfYear = Math.floor(index / rows);
 
     const x = xOffset + weekOfYear * dayWidth;
@@ -56,7 +56,7 @@ const generateSVGFromJSON = (data) => {
       displayedMonths.add(month);
     }
 
-    rects += `
+    rects += ` 
       <rect width="${rectWidth}" height="${rectHeight}" x="${x}" y="${y}" 
             class="ContributionCalendar-day" data-date="${date}" 
             data-level="${level}" rx="2" ry="2" fill="${color}">
