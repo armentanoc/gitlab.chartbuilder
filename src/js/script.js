@@ -1,4 +1,31 @@
-const generateSVGFromJSON = (data) => {
+
+function populateYearDropdown() {
+  const currentYear = new Date().getFullYear();
+  const yearDropdown = document.getElementById('year-input');
+  
+  yearDropdown.innerHTML = '';
+  
+  for (let year = currentYear; year >= currentYear - 5; year--) {
+    const option = document.createElement('option');
+    option.value = year;
+    option.textContent = year;
+    yearDropdown.appendChild(option);
+  }
+
+  yearDropdown.value = currentYear;
+  yearDropdown.addEventListener('change', handleYearChange);
+}
+
+function handleYearChange() {
+  const year = parseInt(document.getElementById('year-input').value);
+  if (window.inputData) {
+    processInputData(window.inputData);
+  }
+}
+
+populateYearDropdown();
+
+const generateSVGFromJSON = (data, filterYear) => {
   const rectWidth = 10;
   const rectHeight = 10;
   const padding = 2;
@@ -9,7 +36,6 @@ const generateSVGFromJSON = (data) => {
   const dayWidth = rectWidth + padding;
   const dayHeight = rectHeight + padding;
   const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  const filterYear = 2024;
 
   const dateKeys = Object.keys(data)
     .map(date => new Date(date))
@@ -101,6 +127,7 @@ function handleInput(event) {
       reader.onload = function (e) {
         try {
           inputData = JSON.parse(e.target.result);
+          window.inputData = inputData; 
           processInputData(inputData);
         } catch (error) {
           showError('Error parsing JSON from file: ' + error.message);
@@ -113,6 +140,7 @@ function handleInput(event) {
   } else if (event.target.value) {
     try {
       inputData = JSON.parse(event.target.value);
+      window.inputData = inputData;
       processInputData(inputData);
     } catch (error) {
       showError('Error parsing JSON string: ' + error.message);
@@ -123,8 +151,9 @@ function handleInput(event) {
 function processInputData(data) {
   try {
     showError('');
+    const year = parseInt(document.getElementById('year-input').value);
     document.getElementById('calendar-svg').innerHTML = '';
-    const svgContent = generateSVGFromJSON(data);
+    const svgContent = generateSVGFromJSON(data, year); 
 
     const calendarSvgElement = document.getElementById('calendar-svg');
     if (calendarSvgElement) {
