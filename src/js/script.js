@@ -41,11 +41,9 @@ const generateSVGFromJSON = (data, filterYear) => {
   const dayHeight = rectHeight + padding;
   const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-  // Create a proper date range for the entire year
   const startDate = new Date(filterYear, 0, 1);
   const endDate = new Date(filterYear, 11, 31);
 
-  // Generate all dates for the year
   const result = {};
   for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
     const dateStr = d.toISOString().split('T')[0];
@@ -62,38 +60,45 @@ const generateSVGFromJSON = (data, filterYear) => {
   let rects = '';
   let monthMarkers = new Map();
   let weekCounter = 0;
-  let lastDayOfWeek = -1;
 
-  Object.keys(result).forEach((date) => {
-    const dateObj = new Date(date);
-    const dayOfWeek = dateObj.getDay();
-    const month = dateObj.getMonth();
-    const dayOfMonth = dateObj.getDate();
+  const firstSunday = new Date(startDate);
+  while (firstSunday.getDay() !== 0) {
+    firstSunday.setDate(firstSunday.getDate() - 1);
+  }
+
+  let currentDate = new Date(firstSunday);
+
+  while (currentDate <= endDate) {
+    const dateStr = currentDate.toISOString().split('T')[0];
+    const year = currentDate.getFullYear();
     
-    // Increment week counter when we go from Saturday to Sunday
-    if (lastDayOfWeek === 6 && dayOfWeek === 0) {
+    if (year === filterYear) {
+      const dayOfWeek = currentDate.getDay();
+      const month = currentDate.getMonth();
+      const dayOfMonth = currentDate.getDate();
+      
+      const x = xOffset + weekCounter * dayWidth;
+      const y = yOffset + dayOfWeek * dayHeight;
+      
+      const level = result[dateStr] || 0;
+      const color = getColor(level);
+
+      if (dayOfMonth === 1) {
+        monthMarkers.set(month, x);
+      }
+
+      rects += ` 
+        <rect width="${rectWidth}" height="${rectHeight}" x="${x}" y="${y}" 
+              class="ContributionCalendar-day" data-date="${dateStr}" 
+              data-level="${level}" rx="2" ry="2" fill="${color}"></rect>`;
+    }
+    
+    if (currentDate.getDay() === 6) {
       weekCounter++;
     }
-    lastDayOfWeek = dayOfWeek;
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
 
-    const x = xOffset + weekCounter * dayWidth;
-    const y = yOffset + dayOfWeek * dayHeight;
-    
-    const level = result[date];
-    const color = getColor(level);
-
-    // Store first x position for each month
-    if (dayOfMonth === 1) {
-      monthMarkers.set(month, x);
-    }
-
-    rects += ` 
-      <rect width="${rectWidth}" height="${rectHeight}" x="${x}" y="${y}" 
-            class="ContributionCalendar-day" data-date="${date}" 
-            data-level="${level}" rx="2" ry="2" fill="${color}"></rect>`;
-  });
-
-  // Convert month markers to array and sort
   const monthMarkersArray = Array.from(monthMarkers, ([month, x]) => ({month, x}))
     .sort((a, b) => a.x - b.x);
 
