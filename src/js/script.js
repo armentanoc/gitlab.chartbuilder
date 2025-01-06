@@ -25,6 +25,10 @@ function handleYearChange() {
 
 populateYearDropdown();
 
+function isLeapYear(year) {
+  return (year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0));
+}
+
 const generateSVGFromJSON = (data, filterYear) => {
   const rectWidth = 10;
   const rectHeight = 10;
@@ -37,14 +41,11 @@ const generateSVGFromJSON = (data, filterYear) => {
   const dayHeight = rectHeight + padding;
   const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-  const dateKeys = Object.keys(data)
-    .map(date => new Date(date))
-    .filter(date => date.getFullYear() === filterYear)
-    .sort((a, b) => a - b);
+  // Create a proper date range for the entire year
+  const startDate = new Date(filterYear, 0, 1);
+  const endDate = new Date(filterYear, 11, 31);
 
-  const startDate = new Date(dateKeys[0].getFullYear(), 0, 2);
-  const endDate = new Date(dateKeys[0].getFullYear(), 11, 30);
-
+  // Generate all dates for the year
   const result = {};
   for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
     const dateStr = d.toISOString().split('T')[0];
@@ -59,26 +60,31 @@ const generateSVGFromJSON = (data, filterYear) => {
   };
 
   let rects = '';
-  let monthMarkers = [];
-  const dates = Object.keys(result);
+  let monthMarkers = new Map();
+  let weekCounter = 0;
+  let lastDayOfWeek = -1;
 
-  const displayedMonths = new Set();
-
-  dates.forEach((date, index) => {
+  Object.keys(result).forEach((date) => {
     const dateObj = new Date(date);
-    const dayOfWeek = (dateObj.getDay() + 1) % 7;
-    const weekOfYear = Math.floor(index / rows);
+    const dayOfWeek = dateObj.getDay();
+    const month = dateObj.getMonth();
+    const dayOfMonth = dateObj.getDate();
+    
+    // Increment week counter when we go from Saturday to Sunday
+    if (lastDayOfWeek === 6 && dayOfWeek === 0) {
+      weekCounter++;
+    }
+    lastDayOfWeek = dayOfWeek;
 
-    const x = xOffset + weekOfYear * dayWidth;
+    const x = xOffset + weekCounter * dayWidth;
     const y = yOffset + dayOfWeek * dayHeight;
+    
     const level = result[date];
     const color = getColor(level);
 
-    const month = dateObj.getMonth();
-
-    if (dayOfWeek === 0 && !displayedMonths.has(month)) {
-      monthMarkers.push({ x: x, month: month });
-      displayedMonths.add(month);
+    // Store first x position for each month
+    if (dayOfMonth === 1) {
+      monthMarkers.set(month, x);
     }
 
     rects += ` 
@@ -87,9 +93,11 @@ const generateSVGFromJSON = (data, filterYear) => {
             data-level="${level}" rx="2" ry="2" fill="${color}"></rect>`;
   });
 
-  monthMarkers.sort((a, b) => a.x - b.x);
+  // Convert month markers to array and sort
+  const monthMarkersArray = Array.from(monthMarkers, ([month, x]) => ({month, x}))
+    .sort((a, b) => a.x - b.x);
 
-  const lastMonthMarker = monthMarkers[monthMarkers.length - 1] || { x: xOffset };
+  const lastMonthMarker = monthMarkersArray[monthMarkersArray.length - 1] || { x: xOffset };
   const svgWidth = Math.max(
     (cols * dayWidth) + xOffset + 10,
     lastMonthMarker.x + rectWidth + 10
@@ -97,7 +105,7 @@ const generateSVGFromJSON = (data, filterYear) => {
 
   const svgHeight = rows * dayHeight + yOffset + 15;
 
-  const monthLabels = monthMarkers.map(marker => `
+  const monthLabels = monthMarkersArray.map(marker => `
     <text x="${marker.x + rectWidth / 2}" y="${yOffset - 5}" text-anchor="middle" fill="#333" font-size="10">
       ${monthNames[marker.month]}
     </text>
